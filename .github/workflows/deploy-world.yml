@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p public
           cp index.* public/
+          cp world-surface.png public/
           if [ -f CNAME ]; then cp CNAME public/; fi
           touch public/.nojekyll
 
