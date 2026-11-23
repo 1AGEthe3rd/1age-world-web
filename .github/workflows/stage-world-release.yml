@@ -1,0 +1,122 @@
+name: Stage 1AGE World solar + outer-ring release (no live deploy)
+on:
+  push:
+    branches:
+      - publish/solar-outer-ring-20261123
+    paths:
+      - .github/workflows/stage-world-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve validated matching Godot web export
+        shell: bash
+        env:
+          ARTIFACT_URL: "https://sdmntprwestus3.oaiusercontent.com/files/00000000-2d6c-81fd-b49e-3ded99e91fbc/raw?se=2026-11-23T22%3A45%3A13Z&sp=r&sv=2026-06-06&sr=b&scid=a8beb2fa-638e-5b57-9b01-1079433313cf&skoid=1a0ef048-201c-43e0-8950-52d58956a71a&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-23T03%3A06%3A30Z&ske=2026-11-24T03%3A06%3A30Z&sks=b&skv=2026-06-06&sig=MTnpv%2BfXiP41r0aWP999xPYRjVvj37k7Ob3iWdmIaWw%3D"
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --connect-timeout 20 "$ARTIFACT_URL" -o /tmp/world-release.zip
+          echo "991c1166f8177ae822fdcbc4c2b9abdc8fce6c604d5c7a8eb6ac7567207f328e  /tmp/world-release.zip" | sha256sum -c -
+          mkdir -p /tmp/world-release
+          unzip -q /tmp/world-release.zip -d /tmp/world-release
+          echo "3418badd42e74cc4f9d7bb6c7a96a2ba12034adda0fb0d6e32d96adea33846df  /tmp/world-release/index.pck" | sha256sum -c -
+          cmp /tmp/world-release/index.js index.js
+          cmp /tmp/world-release/index.wasm index.wasm
+          test "$(wc -c </tmp/world-release/index.pck)" -eq 619040
+          cat /tmp/world-release/SOURCE.txt
+      - name: Retain original World loading art and domain; stage new scene only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/world-release/index.pck index.pck
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("index.html")
+          contents=p.read_text()
+          old='"index.pck":13272952'
+          assert contents.count(old)==1, "Live loader size was unexpectedly modified"
+          contents=contents.replace(old,'"index.pck":619040')
+          assert "1AGE-EARTH-LOADING-001" in contents
+          assert "1AGE-GREEN-PROGRESS-001" in contents
+          p.write_text(contents)
+          assert Path("CNAME").read_text().strip()=="1age.world"
+          Path("WORLD_RELEASE.txt").write_text(
+             "1AGE World: Sun-centered seven-planet orbital system, ordinary Moon, ten flat outer platforms, logo menu.\n"
+             "Development source: 1AGEthe3rd/1age-world@a1511cc455ee08eeda1903fabaca9e536296f6f1\n"
+             "Source workflow run: https://github.com/1AGEthe3rd/1age-world/actions/runs/45275082257\n"
+             "Previous live release backup: backup/pre-solar-outer-ring-release-20261123\n"
+             "Godot 4.7.2 matching JS/WASM retained and original Earth loading screen preserved.\n"
+          )
+          PY
+      - name: Browser screenshot on staged bundle (desktop and touch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.56.1
+          mkdir -p release-screenshots
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/site.log 2>&1 &
+          for count in $(seq 1 30); do curl -fsS http://127.0.0.1:8765/ >/dev/null && break || sleep 1; done
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async ()=>{
+            const browser = await chromium.launch({
+              executablePath:'/usr/bin/google-chrome',
+              headless:true,
+              args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
+            });
+            let failed=false;
+            for(const cfg of [
+              {name:'world-desktop',viewport:{width:1366,height:768},touch:false},
+              {name:'world-mobile',viewport:{width:390,height:844},touch:true}
+            ]){
+              const context=await browser.newContext({
+                viewport:cfg.viewport,
+                isMobile:cfg.touch,
+                hasTouch:cfg.touch,
+                deviceScaleFactor:1
+              });
+              const page=await context.newPage();
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              page.on('console',m=>{if(m.type()==='error') errors.push(m.text())});
+              try {
+                await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:30000});
+                await page.waitForTimeout(10000);
+                const status=await page.locator('#status').count();
+                const notice=status ? await page.locator('#status-notice').textContent().catch(()=> '') : '';
+                const loading=status ? await page.locator('#status').evaluate(e=>getComputedStyle(e).visibility==='visible').catch(()=>true) : false;
+                const canvas=await page.locator('canvas').count();
+                await page.screenshot({path:'release-screenshots/'+cfg.name+'.png',timeout:30000});
+                console.log(cfg.name,'canvas',canvas,'loading',loading,'notice',notice,'errors',errors.slice(0,3));
+                if(!canvas || (loading && notice?.trim())) failed=true;
+              } catch(e) { console.error(cfg.name,e.message); failed=true; }
+              await context.close();
+            }
+            await browser.close();
+            if(failed)process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Commit compiled preview to staging branch; do not touch main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html index.pck WORLD_RELEASE.txt
+          git commit -m "Stage validated solar-system World build with protected loader"
+          git push origin HEAD:publish/solar-outer-ring-20261123
+      - name: Preserve staging screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: solar-world-publish-visual-review
+          path: release-screenshots/
+          retention-days: 7
+          if-no-files-found: warn
