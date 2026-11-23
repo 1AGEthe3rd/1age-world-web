@@ -48,12 +48,23 @@ jobs:
               for ext in ('index.pck','index.wasm'):
                   with urllib.request.urlopen(urllib.request.Request("https://1age.world/"+ext,method='HEAD'),timeout=18) as r:
                       if r.status != 200: errors.append("World asset "+ext+" not accessible")
-                      if ext == "index.pck" and r.headers.get("Content-Length") != "635544":
-                          errors.append("World index.pck is not the published Build 044 version (expected 635544 bytes)")
+                      if ext == "index.pck" and r.headers.get("Content-Length") != "636072":
+                          errors.append("World index.pck is not the published Build 045 version (expected 636072 bytes)")
                       print("WORLD ASSET:", ext, "bytes", r.headers.get("Content-Length"))
               print("WORLD: main loader and both game assets are accessible")
           except Exception as e:
               errors.append("1age.world: "+str(e))
+          try:
+              status, home, _ = fetch("https://1age.com/")
+              required = ["page","space","games","exchange","quest","cash"]
+              for app in required:
+                  if 'href="https://1age.'+app+'/"' not in home:
+                      errors.append("1age.com: planet "+app+" not linked directly to its domain")
+              if '<div class="world-controls">' in home:
+                  errors.append("1age.com: legacy L/R text controls still present")
+              print("1AGE HOME: independent planet routes checked")
+          except Exception as e:
+              errors.append("1age.com: "+str(e))
           def check(site):
               host,app=site
               try:
