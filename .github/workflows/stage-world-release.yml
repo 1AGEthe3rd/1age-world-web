@@ -19,17 +19,17 @@ jobs:
       - name: Retrieve validated matching Godot web export
         shell: bash
         env:
-          ARTIFACT_URL: "https://sdmntprwestus3.oaiusercontent.com/files/00000000-2d6c-81fd-b49e-3ded99e91fbc/raw?se=2026-11-23T22%3A45%3A13Z&sp=r&sv=2026-06-06&sr=b&scid=a8beb2fa-638e-5b57-9b01-1079433313cf&skoid=1a0ef048-201c-43e0-8950-52d58956a71a&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-23T03%3A06%3A30Z&ske=2026-11-24T03%3A06%3A30Z&sks=b&skv=2026-06-06&sig=MTnpv%2BfXiP41r0aWP999xPYRjVvj37k7Ob3iWdmIaWw%3D"
+          ARTIFACT_URL: "https://sdmntprwestus3.oaiusercontent.com/files/00000000-c7ac-81fd-bd09-9e4c3bffaf40/raw?se=2026-11-23T22%3A54%3A49Z&sp=r&sv=2026-06-06&sr=b&scid=b5789ed9-67aa-582d-89b2-a2add1470af3&skoid=1a0ef048-201c-43e0-8950-52d58956a71a&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-23T03%3A02%3A07Z&ske=2026-11-24T03%3A02%3A07Z&sks=b&skv=2026-06-06&sig=gXyplkRqrvI6MKC3un4ubum0hb9OiYiL4ktMq18WUcM%3D"
         run: |
           set -euo pipefail
           curl --fail --location --retry 3 --connect-timeout 20 "$ARTIFACT_URL" -o /tmp/world-release.zip
-          echo "991c1166f8177ae822fdcbc4c2b9abdc8fce6c604d5c7a8eb6ac7567207f328e  /tmp/world-release.zip" | sha256sum -c -
+          echo "1fcf2969af222674fab3e230fadb187f650724f4a563e36f9b191764a4a4b8dd  /tmp/world-release.zip" | sha256sum -c -
           mkdir -p /tmp/world-release
           unzip -q /tmp/world-release.zip -d /tmp/world-release
-          echo "3418badd42e74cc4f9d7bb6c7a96a2ba12034adda0fb0d6e32d96adea33846df  /tmp/world-release/index.pck" | sha256sum -c -
+          echo "07da9833103fd9a003ec77dbdd4c932bc869cb8df0cb8ba9d755153479d5b2fa  /tmp/world-release/index.pck" | sha256sum -c -
           cmp /tmp/world-release/index.js index.js
           cmp /tmp/world-release/index.wasm index.wasm
-          test "$(wc -c </tmp/world-release/index.pck)" -eq 619040
+          test "$(wc -c </tmp/world-release/index.pck)" -eq 621184
           cat /tmp/world-release/SOURCE.txt
       - name: Retain original World loading art and domain; stage new scene only
         shell: bash
@@ -40,17 +40,17 @@ jobs:
           from pathlib import Path
           p=Path("index.html")
           contents=p.read_text()
-          old='"index.pck":13272952'
+          old='"index.pck":619040'
           assert contents.count(old)==1, "Live loader size was unexpectedly modified"
-          contents=contents.replace(old,'"index.pck":619040')
+          contents=contents.replace(old,'"index.pck":621184')
           assert "1AGE-EARTH-LOADING-001" in contents
           assert "1AGE-GREEN-PROGRESS-001" in contents
           p.write_text(contents)
           assert Path("CNAME").read_text().strip()=="1age.world"
           Path("WORLD_RELEASE.txt").write_text(
              "1AGE World: Sun-centered seven-planet orbital system, ordinary Moon, ten flat outer platforms, logo menu.\n"
-             "Development source: 1AGEthe3rd/1age-world@a1511cc455ee08eeda1903fabaca9e536296f6f1\n"
-             "Source workflow run: https://github.com/1AGEthe3rd/1age-world/actions/runs/45275082257\n"
+             "Development source: 1AGEthe3rd/1age-world@f5fe98f8669809c0d303da00d0c349d1ac8b6d89\n"
+             "Source workflow run: https://github.com/1AGEthe3rd/1age-world/actions/runs/45283146333\n"
              "Previous live release backup: backup/pre-solar-outer-ring-release-20261123\n"
              "Godot 4.7.2 matching JS/WASM retained and original Earth loading screen preserved.\n"
           )
