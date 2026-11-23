@@ -1,0 +1,74 @@
+name: Review 1AGE World and Blog in browser
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/browser-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install browser driver
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          test -x /usr/bin/google-chrome || (echo "Chrome unavailable" && exit 1)
+      - name: Capture World and mobile Blog scene
+        shell: bash
+        run: |
+          mkdir -p review
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({
+              executablePath: '/usr/bin/google-chrome',
+              headless: true,
+              args: ['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
+            });
+            let failed = false;
+            for (const test of [
+              { name: 'world-overview-desktop', url: 'https://1age.world/', viewport: {width: 1366, height: 768}, mobile:false },
+              { name: 'blog-platform-desktop', url: 'https://1age.world/?platform=blog', viewport: {width:1366, height:768}, mobile:false },
+              { name: 'blog-domain-mobile', url: 'https://1age.blog/', viewport: {width:390,height:844}, mobile:true }
+            ]) {
+              const context = await browser.newContext({viewport:test.viewport, isMobile:test.mobile, hasTouch:test.mobile, deviceScaleFactor:1});
+              const page = await context.newPage();
+              const problems = [];
+              page.on('pageerror',e=>problems.push('PAGE ERROR: '+e.message));
+              page.on('console',m=>{if(m.type()==='error')problems.push('CONSOLE: '+m.text())});
+              try {
+                await page.goto(test.url,{waitUntil:'domcontentloaded',timeout:45000});
+                await page.waitForTimeout(12000);
+                const frame = test.mobile ? page.frameLocator('iframe') : page;
+                const state = await frame.locator('#status').count();
+                const visibleNotice = state ? await frame.locator('#status-notice').textContent().catch(()=> '') : '';
+                const canvas = await frame.locator('canvas').count();
+                const loadingVisible = state ? await frame.locator('#status').evaluate(e=>getComputedStyle(e).visibility === 'visible').catch(()=>true) : false;
+                await page.screenshot({path:'review/'+test.name+'.png',fullPage:false,timeout:30000});
+                console.log(test.name, 'canvas:',canvas,'loadingVisible:',loadingVisible,'notice:',visibleNotice,'console:',problems.slice(0,4));
+                if (!canvas || (loadingVisible && visibleNotice?.trim())) failed = true;
+              } catch (e) {
+                console.log(test.name, 'FAILED:',e.message);
+                failed = true;
+              }
+              await context.close();
+            }
+            await browser.close();
+            if (failed) process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload visual review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 1age-world-build044-review
+          path: review/
+          if-no-files-found: warn
+          retention-days: 7
