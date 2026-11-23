@@ -1,0 +1,72 @@
+name: Audit published 1AGE 3D domains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/site-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check World bundle and app domain entrances
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, concurrent.futures
+          sites = {
+              "1age.blog": "blog",
+              "1age.page": "page",
+              "1age.space": "space",
+              "1age.games": "games",
+              "1age.exchange": "exchange",
+              "1age.quest": "quest",
+              "1age.cash": "cash",
+              "1age.store": "store",
+              "1age.shop": "shop",
+              "1age.plus": "plus",
+              "1age.design": "design",
+              "1age.app": "app",
+          }
+          errors = []
+          def fetch(url):
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'1AGE-Launch-Audit/1.0'}),timeout=16) as response:
+                  return response.status, response.read(160000).decode('utf-8','replace'), response.headers
+          try:
+              status,body,headers=fetch("https://1age.world/")
+              if status != 200 or "index.js" not in body: errors.append("1age.world: main Godot loader unavailable")
+              xframe=headers.get('X-Frame-Options','').lower()
+              csp=headers.get('Content-Security-Policy','').lower()
+              if xframe in ('deny','sameorigin'): errors.append("1age.world: iframe blocked by X-Frame-Options "+xframe)
+              if "frame-ancestors 'none'" in csp or "frame-ancestors 'self'" in csp: errors.append("1age.world: iframe blocked by CSP")
+              for ext in ('index.pck','index.wasm'):
+                  with urllib.request.urlopen(urllib.request.Request("https://1age.world/"+ext,method='HEAD'),timeout=18) as r:
+                      if r.status != 200: errors.append("World asset "+ext+" not accessible")
+              print("WORLD: main loader and both game assets are accessible")
+          except Exception as e:
+              errors.append("1age.world: "+str(e))
+          def check(site):
+              host,app=site
+              try:
+                  status,body,_=fetch("https://"+host+"/")
+                  if status!=200 or "https://1age.world/?platform="+app not in body or "<iframe" not in body:
+                      return host+": missing domain-specific World entrance"
+                  with urllib.request.urlopen(urllib.request.Request("https://"+host+"/application.html", method='HEAD'),timeout=18) as r:
+                      if r.status != 200: return host+": preserved app missing"
+                  return host+": PASS"
+              except Exception as e: return host+": "+str(e)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+              for outcome in pool.map(check, sites.items()):
+                  print(outcome)
+                  if not outcome.endswith(": PASS"): errors.append(outcome)
+          if errors:
+              print("AUDIT FAILURE:", *errors, sep="\n - ")
+              raise SystemExit(1)
+          print("LIVE DOMAINS: All 12 3D entrances and preserved applications accessible.")
+          PY
