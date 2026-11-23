@@ -1,0 +1,5 @@
+1AGE World: Sun-centered seven-planet orbital system, ordinary Moon, ten flat outer platforms, logo menu.
+Development source: 1AGEthe3rd/1age-world@a1511cc455ee08eeda1903fabaca9e536296f6f1
+Source workflow run: https://github.com/1AGEthe3rd/1age-world/actions/runs/45275082257
+Previous live release backup: backup/pre-solar-outer-ring-release-20261123
+Godot 4.7.2 matching JS/WASM retained and original Earth loading screen preserved.
