@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import urllib.request, urllib.error, concurrent.futures
+          import urllib.request, urllib.error, concurrent.futures, ssl, socket
           sites = {
               "1age.blog": "blog",
               "1age.page": "page",
@@ -48,6 +48,9 @@ jobs:
               for ext in ('index.pck','index.wasm'):
                   with urllib.request.urlopen(urllib.request.Request("https://1age.world/"+ext,method='HEAD'),timeout=18) as r:
                       if r.status != 200: errors.append("World asset "+ext+" not accessible")
+                      if ext == "index.pck" and r.headers.get("Content-Length") != "635544":
+                          errors.append("World index.pck is not the published Build 044 version (expected 635544 bytes)")
+                      print("WORLD ASSET:", ext, "bytes", r.headers.get("Content-Length"))
               print("WORLD: main loader and both game assets are accessible")
           except Exception as e:
               errors.append("1age.world: "+str(e))
@@ -60,7 +63,19 @@ jobs:
                   with urllib.request.urlopen(urllib.request.Request("https://"+host+"/application.html", method='HEAD'),timeout=18) as r:
                       if r.status != 200: return host+": preserved app missing"
                   return host+": PASS"
-              except Exception as e: return host+": "+str(e)
+              except Exception as e:
+                  if "CERTIFICATE_VERIFY_FAILED" in str(e):
+                      try:
+                          addresses = ",".join(sorted({x[4][0] for x in socket.getaddrinfo(host,443,type=socket.SOCK_STREAM)}))
+                          print(host, "resolves to", addresses)
+                          request = urllib.request.Request("https://"+host+"/",headers={'User-Agent':'1AGE-Launch-Audit/1.0'})
+                          with urllib.request.urlopen(request,timeout=16,context=ssl._create_unverified_context()) as r:
+                              body = r.read(160000).decode('utf-8','replace')
+                              if "https://1age.world/?platform="+app in body:
+                                  return host+": 3D entrance exists but HTTPS certificate is invalid"
+                      except Exception as detail:
+                          return host+": HTTPS invalid, diagnostic request failed: "+str(detail)
+                  return host+": "+str(e)
           with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
               for outcome in pool.map(check, sites.items()):
                   print(outcome)
