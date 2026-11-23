@@ -1,0 +1,50 @@
+name: Import tested 1AGE World Build 043 (one-time)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/import-world-build043.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download pinned reviewed Godot 4.7.2 export
+        env:
+          BUILD_URL: "https://sdmntprcentralus.oaiusercontent.com/files/00000000-01c8-81f5-a125-d1c301a53cae/raw?se=2026-11-23T17%3A10%3A25Z&sp=r&sv=2026-06-06&sr=b&scid=daaa0e65-cdc8-5b70-8ea8-c2f91e236aa0&skoid=3c9b86d7-60cb-496a-a3c1-90c5457c8da4&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-11-23T02%3A07%3A47Z&ske=2026-11-24T02%3A07%3A47Z&sks=b&skv=2026-06-06&sig=JauHXH2jdDlqpYpPCrOtTQOySLJwLKik6TNVjPDgMP8%3D"
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 3 --max-time 120 "$BUILD_URL" -o /tmp/build043.zip
+          unzip -q /tmp/build043.zip -d /tmp/build043
+          cd /tmp/build043
+          sha256sum -c SHA256SUMS.txt
+          test -s index.html
+          test -s index.js
+          test -s index.pck
+          test -s index.wasm
+          grep -q "c29f3cc7cebf4e8f130485dd50b005bdff4a6801" SOURCE.txt
+      - name: Replace complete public World Web bundle and preserve domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in /tmp/build043/index.*; do
+            test -f "$f" && cp "$f" .
+          done
+          printf '1age.world\n' > CNAME
+          touch .nojekyll
+          git config user.name "1AGE Build Publisher"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.* CNAME .nojekyll
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish tested World Build 043: outer application orbit and controller updates"
+            git push origin HEAD:main
+          fi
