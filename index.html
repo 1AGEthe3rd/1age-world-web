@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
-		<title>1AGE World</title>
+		<title>Explore 1AGE</title>
 		<style>
 html, body, #canvas {
 	margin: 0;
@@ -93,7 +93,95 @@ body {
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
-	</head>
+	
+<!-- 1AGE-EARTH-LOADING-001 -->
+<style>
+#status-splash {
+    display: none !important;
+}
+
+#status {
+    background: #000 !important;
+}
+
+#oneage-earth-loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(54vw, 260px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #9945ff;
+    background: #000;
+    box-shadow: 0 0 35px #9945ff25;
+    pointer-events: none;
+}
+
+#oneage-earth-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#status-progress {
+    position: fixed !important;
+    top: calc(50% + min(27vw, 130px) + 32px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(54vw, 260px) !important;
+}
+</style>
+
+
+<!-- 1AGE-GREEN-PROGRESS-001 -->
+<style>
+#status-progress {
+    position: fixed !important;
+    top: calc(50% + min(27vw, 130px) + 32px) !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translateX(-50%) !important;
+
+    width: min(54vw, 260px) !important;
+    height: 5px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0 !important;
+    border-radius: 999px !important;
+    overflow: hidden;
+
+    background: #10251b !important;
+    accent-color: #1BFD9C;
+}
+
+#status-progress::-moz-progress-bar {
+    background: #1BFD9C;
+    border-radius: 999px;
+}
+
+#status-progress::-webkit-progress-bar {
+    background: #10251b;
+    border-radius: 999px;
+}
+
+#status-progress::-webkit-progress-value {
+    background: #1BFD9C;
+    border-radius: 999px;
+}
+
+#status-progress:indeterminate {
+    accent-color: #1BFD9C;
+}
+</style>
+
+</head>
 	<body>
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
@@ -104,6 +192,11 @@ body {
 		</noscript>
 
 		<div id="status">
+
+<div id="oneage-earth-loader" aria-label="Loading 1AGE World">
+    <canvas id="oneage-earth-canvas" width="336" height="336"></canvas>
+</div>
+
 			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
 			<progress id="status-progress"></progress>
 			<div id="status-notice"></div>
@@ -111,7 +204,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":636072,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":13272952,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -215,6 +308,125 @@ const engine = new Engine(GODOT_CONFIG);
 	}
 }());
 		</script>
-	</body>
+	
+<script>
+(() => {
+    "use strict";
+
+    const canvas = document.getElementById("oneage-earth-canvas");
+    if (!canvas) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const strip = document.createElement("canvas");
+    const stripContext = strip.getContext("2d");
+    if (!stripContext) return;
+
+    const image = new Image();
+    const tiles = [];
+
+    // Original 1AGE spherical Earth projection.
+    for (let row = 0; row < 32; row++) {
+        const top = -1 + row / 16;
+        const bottom = -1 + (row + 1) / 16;
+
+        const limit = Math.sqrt(
+            Math.max(0, 1 - ((top + bottom) / 2) ** 2)
+        );
+
+        const v1 = 0.5 + Math.asin(top) / Math.PI;
+        const v2 = 0.5 + Math.asin(bottom) / Math.PI;
+
+        for (let column = 0; column < 24; column++) {
+            const a = -Math.PI / 2 + column * Math.PI / 24;
+            const b = -Math.PI / 2 + (column + 1) * Math.PI / 24;
+
+            tiles.push({
+                left: limit * Math.sin(a),
+                right: limit * Math.sin(b),
+                top,
+                bottom,
+                u: 1 + a / (Math.PI * 2),
+                du: (b - a) / (Math.PI * 2),
+                v: v1,
+                dv: v2 - v1
+            });
+        }
+    }
+
+    function render(turn) {
+        context.clearRect(0, 0, 336, 336);
+
+        context.save();
+        context.beginPath();
+        context.arc(168, 168, 168, 0, Math.PI * 2);
+        context.clip();
+
+        context.fillStyle = "#000";
+        context.fillRect(0, 0, 336, 336);
+
+        for (const tile of tiles) {
+            context.drawImage(
+                strip,
+                (tile.u + turn) * image.width,
+                tile.v * image.height,
+                tile.du * image.width,
+                tile.dv * image.height,
+                (1 + tile.left) * 168 - 0.3,
+                (1 + tile.top) * 168 - 0.3,
+                (tile.right - tile.left) * 168 + 0.6,
+                (tile.bottom - tile.top) * 168 + 0.6
+            );
+        }
+
+        context.restore();
+    }
+
+    image.onload = () => {
+        strip.width = image.width * 3;
+        strip.height = image.height;
+
+        for (let i = 0; i < 3; i++) {
+            stripContext.drawImage(
+                image,
+                i * image.width,
+                0
+            );
+        }
+
+        const reduced = window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+        );
+
+        const started = performance.now();
+
+        render(0);
+
+        const timer = window.setInterval(() => {
+            // Godot removes its status overlay when World starts.
+            if (!canvas.isConnected) {
+                window.clearInterval(timer);
+                return;
+            }
+
+            if (document.hidden || reduced.matches) return;
+
+            const elapsed = (performance.now() - started) / 1000;
+            const turn = (elapsed / 120) % 1;
+
+            render(turn);
+        }, 100);
+    };
+
+    image.onerror = () => {
+        console.warn("1AGE World Earth texture unavailable.");
+    };
+
+    image.src = "world-surface.png";
+})();
+</script>
+
+</body>
 </html>
 
