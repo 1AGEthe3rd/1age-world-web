@@ -19,8 +19,8 @@ jobs:
           ed6c861e93ef52035a5fb829ed7e349a0d31849287fd7053a1715affd570313a  index.pck
           16dec056aa52c945c2cf46dde8fa2da207c69817ec7519c759633b2ff931737a  review/world-platforms.pck.zst
           SUMS
-          cp index.* preview/
-          zstd --decompress --patch-from=index.pck review/world-platforms.pck.zst --output=preview/index.pck --force
+          cp index.* world-surface.png preview/
+          zstd --decompress --patch-from=index.pck review/world-platforms.pck.zst -o preview/index.pck --force
           sha256sum -c <<'SUMS'
           97dff3a2fa7424c25dd68da12b2eefc12d9001c5b01a47eecfb540cd5ab64f66  preview/index.pck
           SUMS
