@@ -20,7 +20,13 @@ const entries = [
   ['preview-quest', '/preview/?platform=quest', desktop, 'Quest'],
   ['preview-exchange', '/preview/?platform=exchange', desktop, 'Exchange'],
   ['preview-design', '/preview/?platform=design', desktop, 'Design'],
-  ['preview-blog', '/preview/?platform=blog', portrait, 'Blog']
+  ['preview-blog', '/preview/?platform=blog', portrait, 'Blog'],
+  ['preview-store', '/preview/?platform=store', desktop, 'Store'],
+  ['preview-shop', '/preview/?platform=shop', desktop, 'Shop'],
+  ['preview-plus', '/preview/?platform=plus', desktop, 'Plus'],
+  ['preview-app', '/preview/?platform=app', desktop, 'App'],
+  ['preview-forum', '/preview/?platform=forum', desktop, 'Forum'],
+  ['preview-work', '/preview/?platform=work', desktop, 'Work']
 ]
 
 async function render(browser, origin, [name, path, viewport, platform]) {

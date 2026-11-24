@@ -17,14 +17,14 @@ jobs:
           mkdir -p preview captures
           sha256sum -c <<'SUMS'
           ed6c861e93ef52035a5fb829ed7e349a0d31849287fd7053a1715affd570313a  index.pck
-          43b6dc64bf07520de9f6cd26139caa6773650d4e9d872f9a1293a155845d3f38  review/world-platforms.pck.zst
+          0bf9f4170a2500ded8b667c75574895542a97fc2588b82d2069a094f7600513d  review/world-platforms.pck.zst
           SUMS
           cp index.* world-surface.png preview/
           zstd --decompress --patch-from=index.pck review/world-platforms.pck.zst -o preview/index.pck --force
           sha256sum -c <<'SUMS'
-          6d30cfde2792b0f7f166eadd6e68c32f2ce16103ca60ec5d8ffd86c4fff6a230  preview/index.pck
+          a56f4be432d7b6b96b56884440eca77ea2c28a4722c1d7fd6d964701460c5bd9  preview/index.pck
           SUMS
-          sed -i 's/"index.pck":13272952/"index.pck":13324740/' preview/index.html
+          sed -i 's/"index.pck":13272952/"index.pck":13324868/' preview/index.html
           npm install --no-save --no-package-lock playwright@1.56.1
       - name: Render baseline and preview in WebGL2
         run: node review/platform-connections.cjs
@@ -49,7 +49,7 @@ jobs:
       - name: Stage the verified export on a dedicated release branch
         shell: bash
         run: |
-          release_branch=release/world-platforms-connected-20261124
+          release_branch=release/world-app-decks-20261124
           baseline=66ead0e5d68fe78370c07f67e515e2a6e2d1c9c0
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$baseline"
@@ -59,9 +59,9 @@ jobs:
           fi
           git worktree add --detach release "$baseline"
           zstd --decompress --patch-from=release/index.pck review/world-platforms.pck.zst -o "$RUNNER_TEMP/index.pck"
-          printf '%s  %s\n' 6d30cfde2792b0f7f166eadd6e68c32f2ce16103ca60ec5d8ffd86c4fff6a230 "$RUNNER_TEMP/index.pck" | sha256sum -c
+          printf '%s  %s\n' a56f4be432d7b6b96b56884440eca77ea2c28a4722c1d7fd6d964701460c5bd9 "$RUNNER_TEMP/index.pck" | sha256sum -c
           cp "$RUNNER_TEMP/index.pck" release/index.pck
-          sed -i 's/"index.pck":13272952/"index.pck":13324740/' release/index.html
+          sed -i 's/"index.pck":13272952/"index.pck":13324868/' release/index.html
           git -C release config user.name 'github-actions[bot]'
           git -C release config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git -C release add index.pck index.html
