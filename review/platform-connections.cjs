@@ -18,6 +18,7 @@ const entries = [
   ['preview-space', '/preview/?platform=space', landscape, 'Space'],
   ['preview-games', '/preview/?platform=games', desktop, 'Games'],
   ['preview-quest', '/preview/?platform=quest', desktop, 'Quest'],
+  ['preview-exchange', '/preview/?platform=exchange', desktop, 'Exchange'],
   ['preview-design', '/preview/?platform=design', desktop, 'Design'],
   ['preview-blog', '/preview/?platform=blog', portrait, 'Blog']
 ]
@@ -101,7 +102,7 @@ async function main() {
         console.error(error.message)
       }
     }
-    for (const platform of ['Page', 'Space', 'Games']) {
+    for (const platform of ['Page', 'Space', 'Games', 'Quest']) {
       try {
         await liveEntrance(browser, platform)
       } catch (error) {
@@ -109,7 +110,7 @@ async function main() {
         console.error('live', platform, error.message)
       }
     }
-    await Promise.all(['quest', 'exchange', 'cash'].map(async app => {
+    await Promise.all(['exchange', 'cash'].map(async app => {
       try {
         const response = await fetch('https://1age.' + app + '/', { signal: AbortSignal.timeout(8000) })
         console.log('hosting', app, response.status)
