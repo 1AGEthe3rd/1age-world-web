@@ -17,14 +17,14 @@ jobs:
           mkdir -p preview captures
           sha256sum -c <<'SUMS'
           ed6c861e93ef52035a5fb829ed7e349a0d31849287fd7053a1715affd570313a  index.pck
-          54c568476e10859c7767e407bc757e6fa824a3f97ab9e6a86cf786ebf883752c  review/world-platforms.pck.zst
+          07b40a33712d87b42bf1d68aa4970b0ce3d5baf8a631eca1c82f578686022f40  review/world-platforms.pck.zst
           SUMS
           cp index.* world-surface.png preview/
           zstd --decompress --patch-from=index.pck review/world-platforms.pck.zst -o preview/index.pck --force
           sha256sum -c <<'SUMS'
-          5912b9b479d1bc0e51b3d8c2cd587ce667fdaf582c50b54787f92461c4fa0101  preview/index.pck
+          b217734cecd4556259e978a3410da7f5cb16f861c669c1dc712594375eab092e  preview/index.pck
           SUMS
-          sed -i 's/"index.pck":13272952/"index.pck":13324228/' preview/index.html
+          sed -i 's/"index.pck":13272952/"index.pck":13324724/' preview/index.html
           npm install --no-save --no-package-lock playwright@1.56.1
       - name: Render baseline and preview in WebGL2
         run: node review/platform-connections.cjs
@@ -34,3 +34,36 @@ jobs:
           name: world-platform-render-review
           path: captures/
           if-no-files-found: warn
+
+  stage-release:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/world-platform-connection-review-20261124'
+    needs: render
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Stage the verified export on a dedicated release branch
+        shell: bash
+        run: |
+          release_branch=release/world-platforms-20261124
+          baseline=66ead0e5d68fe78370c07f67e515e2a6e2d1c9c0
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$baseline"
+          if git ls-remote --exit-code --heads origin "refs/heads/$release_branch" >/dev/null; then
+            echo "Review the existing release branch before updating it."
+            exit 1
+          fi
+          git worktree add --detach release "$baseline"
+          zstd --decompress --patch-from=release/index.pck review/world-platforms.pck.zst -o "$RUNNER_TEMP/index.pck"
+          printf '%s  %s\n' b217734cecd4556259e978a3410da7f5cb16f861c669c1dc712594375eab092e "$RUNNER_TEMP/index.pck" | sha256sum -c
+          cp "$RUNNER_TEMP/index.pck" release/index.pck
+          sed -i 's/"index.pck":13272952/"index.pck":13324724/' release/index.html
+          git -C release config user.name 'github-actions[bot]'
+          git -C release config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C release add index.pck index.html
+          git -C release commit -m "Ship the 1AGE World platform connections"
+          git -C release push origin "HEAD:refs/heads/$release_branch"
