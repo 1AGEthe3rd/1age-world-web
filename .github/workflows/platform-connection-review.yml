@@ -17,12 +17,12 @@ jobs:
           mkdir -p preview captures
           sha256sum -c <<'SUMS'
           ed6c861e93ef52035a5fb829ed7e349a0d31849287fd7053a1715affd570313a  index.pck
-          16dec056aa52c945c2cf46dde8fa2da207c69817ec7519c759633b2ff931737a  review/world-platforms.pck.zst
+          54c568476e10859c7767e407bc757e6fa824a3f97ab9e6a86cf786ebf883752c  review/world-platforms.pck.zst
           SUMS
           cp index.* world-surface.png preview/
           zstd --decompress --patch-from=index.pck review/world-platforms.pck.zst -o preview/index.pck --force
           sha256sum -c <<'SUMS'
-          97dff3a2fa7424c25dd68da12b2eefc12d9001c5b01a47eecfb540cd5ab64f66  preview/index.pck
+          5912b9b479d1bc0e51b3d8c2cd587ce667fdaf582c50b54787f92461c4fa0101  preview/index.pck
           SUMS
           sed -i 's/"index.pck":13272952/"index.pck":13324228/' preview/index.html
           npm install --no-save --no-package-lock playwright@1.56.1

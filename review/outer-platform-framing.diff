@@ -1,0 +1,16 @@
+diff --git a/world-app-batch/world_build0082/outer_platforms.gd b/tmp/1age-app-framing/source/world_build0082/outer_platforms.gd
+index 311ddb8..ea878cc 100644
+--- a/world-app-batch/world_build0082/outer_platforms.gd
++++ b/tmp/1age-app-framing/source/world_build0082/outer_platforms.gd
+@@ -129,9 +129,9 @@ func place_arrival(index: int) -> void:
+     var camera: Camera3D = world.get("camera")
+     var center := anchors[index]
+     var direction := Vector3(center.x,0,center.z).normalized()
+-    player.position = center - direction * 8.0 + Vector3.UP * 0.35
++    player.position = center - direction * 12.0 + Vector3.UP * 0.35
+     player.look_at(Vector3(center.x, player.position.y, center.z), Vector3.UP)
+-    camera.look_at(center + Vector3.UP * 3.3, Vector3.UP)
++    camera.look_at(center + Vector3.UP * 6.2, Vector3.UP)
+     player.velocity = Vector3.ZERO
+ 
+ func _box(parent: Node3D, at: Vector3, size: Vector3, angle: float, color: Color) -> StaticBody3D:
