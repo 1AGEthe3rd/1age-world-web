@@ -15,3 +15,7 @@ jobs:
           test "$(wc -c < index.pck)" = "13455324"
           echo '534774429a50ebdd4d316af91c6da67f92bfb118720430e7f7fab4b01b03d204  index.pck' | sha256sum --check
           grep -F '"index.pck":13455324' index.html
+      - name: Prepare Cloudflare-compatible static output
+        run: node scripts/build-cloudflare.mjs
+      - name: Verify restored engine and original project pack
+        run: node scripts/test-cloudflare-build.mjs
