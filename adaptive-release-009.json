@@ -1,0 +1,14 @@
+{
+  "release": "009",
+  "readyForPublish": false,
+  "requiredUpload": "index.pck",
+  "size": 13455324,
+  "sha256": "534774429a50ebdd4d316af91c6da67f92bfb118720430e7f7fab4b01b03d204",
+  "compatibleRuntimeGitBlobs": {
+    "index.js": "c84b7de50f26f0dd21bd4b2885de851a3ea6ff39",
+    "index.wasm": "8f900d00d644a698bbce67439bf6daf73bdfa4b7",
+    "index.audio.worklet.js": "3b94cab85cb937fa27056d17648cdbb73e44bdbd",
+    "index.audio.position.worklet.js": "4e512c1e3c99c63cc69b0345b7bb250679e0d313"
+  },
+  "note": "Do not merge until matching binary is uploaded and tested."
+}
