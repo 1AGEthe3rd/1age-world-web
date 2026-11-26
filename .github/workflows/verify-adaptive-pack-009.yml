@@ -1,4 +1,4 @@
-name: Verify World Build 010 pack
+name: Verify World Build 010A pack
 on:
   pull_request:
     branches: [main]
@@ -12,9 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify release pack and matching loader
         run: |
-          test "$(wc -c < index.pck)" = "13466052"
-          echo '21d9844132e57db7edfc56aac03469c273e09245328cce34f03955b0c8af24c2  index.pck' | sha256sum --check
-          grep -F '"index.pck":13466052' index.html
+          test "$(wc -c < index.pck)" = "13471060"
+          echo '640d882bfe154beaa7a7a66bf66e08babde47d7ec13c0c92e802320d5922a4f2  index.pck' | sha256sum --check
+          grep -F '"index.pck":13471060' index.html
       - name: Prepare Cloudflare-compatible static output
         run: node scripts/build-cloudflare.mjs
       - name: Verify restored engine and original project pack

@@ -6,7 +6,7 @@ import {gzipSync,gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 const limit=25*1024*1024, out=resolve('dist');
 const pack=readFileSync('index.pck');
-if(pack.length!==13466052||createHash('sha256').update(pack).digest('hex')!=='21d9844132e57db7edfc56aac03469c273e09245328cce34f03955b0c8af24c2')throw Error('Build 010 pack missing or mismatched; refusing to deploy');
+if(pack.length!==13471060||createHash('sha256').update(pack).digest('hex')!=='640d882bfe154beaa7a7a66bf66e08babde47d7ec13c0c92e802320d5922a4f2')throw Error('Build 010A pack missing or mismatched; refusing to deploy');
 const wasm=readFileSync('index.wasm');
 if(wasm.length!==39514754||wasm.readUInt32LE(0)!==0x6d736100)throw Error('Unexpected original Godot engine');
 const compressed=gzipSync(wasm,{level:9});
