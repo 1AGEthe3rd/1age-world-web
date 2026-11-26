@@ -1,0 +1,22 @@
+import {cities} from './records.mjs';
+const $=s=>document.querySelector(s),canvas=$('#earth'),ctx=canvas.getContext('2d'),buffer=document.createElement('canvas'),bc=buffer.getContext('2d'),rad=Math.PI/180;
+let lon=-100,lat=38,zoom=1,selected=null,texture=null,hits=[],drag=null,raf=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const image=new Image();image.onload=()=>{try{const t=document.createElement('canvas');t.width=512;t.height=256;const c=t.getContext('2d');c.drawImage(image,0,0,512,256);texture=c.getImageData(0,0,512,256);schedule();}catch{}};image.src='../world-surface.png';
+function project(point,r,cx,cy){const a=point[0]*rad,b=(point[1]-lon)*rad,l=lat*rad;return{x:cx+r*Math.cos(a)*Math.sin(b),y:cy-r*(Math.cos(l)*Math.sin(a)-Math.sin(l)*Math.cos(a)*Math.cos(b)),z:Math.sin(l)*Math.sin(a)+Math.cos(l)*Math.cos(a)*Math.cos(b)};}
+function draw(){raf=0;if(!ctx||!bc)return;const w=canvas.width,h=canvas.height,r=Math.min(w,h)*.44*zoom,cx=w/2,cy=h/2,l=lat*rad,sl=Math.sin(l),cl=Math.cos(l);buffer.width=w;buffer.height=h;const pixels=bc.createImageData(w,h),d=pixels.data;
+ for(let y=0;y<h;y++){const py=(cy-y)/r;for(let x=0;x<w;x++){const px=(x-cx)/r,rho=px*px+py*py;if(rho>1)continue;const z=Math.sqrt(1-rho),phi=Math.asin(clamp(cl*py+sl*z,-1,1)),lambda=lon*rad+Math.atan2(px,cl*z-sl*py),u=((lambda/(2*Math.PI))%1+1)%1,v=clamp(.5-phi/Math.PI,0,.9999),ti=(Math.floor(v*256)*512+Math.floor(u*512))*4,shade=.44+.56*z,k=(y*w+x)*4,land=texture?texture.data[ti+1]>100:false;d[k]=(land?27:8)*shade;d[k+1]=(land?220:49)*shade;d[k+2]=(land?156:76)*shade;d[k+3]=255;}}
+ bc.putImageData(pixels,0,0);ctx.clearRect(0,0,w,h);ctx.drawImage(buffer,0,0);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle='#73c9cf';ctx.stroke();hits=[];
+ for(const city of cities){const p=project(city.point,r,cx,cy);if(p.z<.04)continue;ctx.beginPath();ctx.arc(p.x,p.y,city===selected?8:5,0,Math.PI*2);ctx.fillStyle=city===selected?'#ffd995':'#c3ffec';ctx.fill();hits.push({...p,city});}
+}
+function schedule(){if(!raf)raf=requestAnimationFrame(draw);}
+function resize(){const b=canvas.getBoundingClientRect(),s=Math.min(1.5,devicePixelRatio||1,520/Math.max(b.width,b.height,1));canvas.width=Math.max(1,Math.round(b.width*s));canvas.height=Math.max(1,Math.round(b.height*s));schedule();}
+function link(label,url,parent){const a=document.createElement('a');a.textContent=label;a.href=url;parent.append(a);}
+function choose(city){selected=city;lat=city.point[0];lon=city.point[1];$('#status').textContent=city.district;for(const b of $('#cities').children)b.setAttribute('aria-pressed',String(b.dataset.city===city.id));const d=$('#details');d.replaceChildren();link('Enter '+city.district,city.url,d);if(city.venues.length){const small=document.createElement('small');small.textContent='Studio venues inside HQ1 · direct access';d.append(small);for(const venue of city.venues)link(venue.name,venue.url,d);}schedule();}
+for(const city of cities){const b=document.createElement('button');b.type='button';b.dataset.city=city.id;b.textContent=city.name;b.setAttribute('aria-pressed','false');b.onclick=()=>choose(city);$('#cities').append(b);}
+document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>{lon+=Number(b.dataset.move);schedule();});document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{zoom=clamp(zoom*(Number(b.dataset.zoom)>0?1.35:1/1.35),1,3);schedule();});
+canvas.addEventListener('pointerdown',e=>{if(drag||e.button!==0)return;canvas.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,d:0};});
+canvas.addEventListener('pointermove',e=>{if(drag?.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.d+=Math.hypot(dx,dy);drag.x=e.clientX;drag.y=e.clientY;if(drag.d>4){lon-=dx*.45/zoom;lat=clamp(lat+dy*.45/zoom,-85,85);schedule();}});
+canvas.addEventListener('pointerup',e=>{if(drag?.id!==e.pointerId)return;if(drag.d<=4){const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)*canvas.width/b.width,y=(e.clientY-b.top)*canvas.height/b.height;const h=hits.filter(p=>Math.hypot(x-p.x,y-p.y)<14).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];if(h)choose(h.city);}drag=null;});
+for(const t of ['pointercancel','lostpointercapture'])canvas.addEventListener(t,()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY<0?1.12:1/1.12),1,3);schedule();},{passive:false});new ResizeObserver(resize).observe(canvas);resize();
